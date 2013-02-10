@@ -3,17 +3,28 @@ json_parse = (function() {
   var T_STRING = "T0" ,   // String
   T_COLON = "T1",     // :
   T_COMMA = "T2",     // ,
+  T_TRUE = "T3",      // true
+  T_FALSE = "T4",     // false
+  T_NULL = "T5",      // null
   N_OBJ = "N0",       // object
-  N_STRING = "N1",    // String in syntax tree
+  N_LITERAL = "N1",    // String, Boolean, .. in syntax tree
 
   tokenize = (function(){
     var tokens = [], source, cur_idx, buf = [],
 
-    next = function (){
-      cur_idx+=1;
+    next = function (i){
+      i = typeof i !== "undefined" ? i : 1;
+      cur_idx+=i;
     },
     cur_char = function(){
       return source.charAt(cur_idx);
+    },
+    check_literal = function(literal){
+      var result = true;
+      for(var i=0, length=literal.length; i<length && result; i+=1) {
+	if (literal.charAt(i)!==source.charAt(cur_idx+i)) result=false;
+      }
+      return result;
     },
 
     make_string = function(){
@@ -37,7 +48,7 @@ json_parse = (function() {
     
     return function(str) {
 
-      source = str, cur_idx=0, 
+      source = str, cur_idx=0, tokens=[],
       c = cur_char();
 
       while (cur_idx<source.length) {
@@ -53,6 +64,24 @@ json_parse = (function() {
 	    break;
 	  case "\"":
 	    tokens.push(make_string());
+	  case "t":
+	    if (check_literal("true")) {
+	      tokens.push(make_token(T_TRUE));
+	      next(4);
+	    }
+	    break;
+	  case "f":
+	    if (check_literal("false")) {
+	      tokens.push(make_token(T_FALSE));
+	      next(5);
+	    }
+	    break;
+	  case "n":
+	    if (check_literal("null")) {
+	      tokens.push(make_token(T_NULL));
+	      next(4);
+	    }
+	    break;
           default:
 	    break;
 	}
@@ -70,10 +99,10 @@ json_parse = (function() {
 	type : type	
       };
     },
-    create_string_node = function(value) {
-      var str_node = create_node(N_STRING);
-      str_node.value = value;
-      return str_node;
+    create_literal_node = function(value) {
+      var literal_node = create_node(N_LITERAL);
+      literal_node.value = value;
+      return literal_node;
     },
 
     parse = function(n){
@@ -86,12 +115,21 @@ json_parse = (function() {
 	case T_STRING:
 	  if (tokens[n+1] != undefined && tokens[n+1].type===T_COLON) {
 	    node = create_node(N_OBJ);
-	    node.key = create_string_node(tokens[n].value);
+	    node.key = create_literal_node(tokens[n].value);
 	    node.value = parse(n+2);
 	    return node;
 	  } else {
-	    return create_string_node(tokens[n].value);
+	    return create_literal_node(tokens[n].value);
 	  }
+	  break;
+	case T_TRUE:
+	  return create_literal_node(true);
+	  break;
+	case T_FALSE:
+	  return create_literal_node(false);
+	  break;
+	case T_NULL:
+	  return create_literal_node(null);
 	  break;
 	default:
 	  break;
@@ -112,7 +150,7 @@ json_parse = (function() {
 	case N_OBJ:
 	  result[generate(node.key)] = generate(node.value);
 	  return result;
-	case N_STRING:
+	case N_LITERAL:
 	  return node.value;
 	default:
 	  return undefined;
@@ -137,3 +175,6 @@ json_parse = (function() {
 }());
 
 console.log(json_parse('"key1":"value1"'));
+console.log(json_parse('"key1":true'));
+console.log(json_parse('"key1":false'));
+console.log(json_parse('"key1":null'));
