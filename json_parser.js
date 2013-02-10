@@ -6,15 +6,18 @@ json_parse = (function() {
   T_TRUE = "T3",      // true
   T_FALSE = "T4",     // false
   T_NULL = "T5",      // null
+  T_LBRACKET = "T6",    // {
+  T_RBRACKET = "T7",    // }
   N_OBJ = "N0",       // object
-  N_LITERAL = "N1",    // String, Boolean, .. in syntax tree
+  N_OBJ_ATTR = "N1",    // Boolean, .. in syntax tree
+  N_LITERAL = "N2",    // Boolean, .. in syntax tree
 
   tokenize = (function(){
     var tokens = [], source, cur_idx, buf = [],
 
     next = function (i){
-      i = typeof i !== "undefined" ? i : 1;
-      cur_idx+=i;
+      //      i = typeof i !== "undefined" ? i : 1;
+      cur_idx+=i || 1;
     },
     cur_char = function(){
       return source.charAt(cur_idx);
@@ -54,6 +57,14 @@ json_parse = (function() {
       while (cur_idx<source.length) {
 
 	switch (c) {
+	  case "{":
+	    tokens.push(make_token(T_LBRACKET));
+	    next();
+	    break;	    
+	  case "}":
+	    tokens.push(make_token(T_RBRACKET));
+	    next();
+	    break;
           case ":":
 	    tokens.push(make_token(T_COLON));
 	    next();
@@ -92,8 +103,14 @@ json_parse = (function() {
   })(),
 
   create_syntax_tree = (function(){
-    var tokens, 
+    var tokens, cur_idx,
 
+    next = function(i) {
+      cur_idx += i || 1;
+    },
+    error = function(msg) {
+//      throw "Invalid format. "+msg|"";
+    },
     create_node = function(type) {
       return {
 	type : type	
@@ -104,40 +121,75 @@ json_parse = (function() {
       literal_node.value = value;
       return literal_node;
     },
-
-    parse = function(n){
-      var node={};
-
-      if (tokens[n] == undefined) {
-	return undefined;
-      }
-      switch (tokens[n].type) {
-	case T_STRING:
-	  if (tokens[n+1] != undefined && tokens[n+1].type===T_COLON) {
-	    node = create_node(N_OBJ);
-	    node.key = create_literal_node(tokens[n].value);
-	    node.value = parse(n+2);
-	    return node;
-	  } else {
-	    return create_literal_node(tokens[n].value);
+    create_obj_node = function() {
+      var node = create_node(N_OBJ);
+      node.attrs = [];
+      return node;
+    },
+    create_obj_attr = function(key, value) {
+      var node = create_node(N_OBJ_ATTR);
+      node.key = key;
+      node.value = value;
+      return node;
+    },
+    parse_obj = function(){
+      var key, value, node;
+      if (tokens[cur_idx].type === T_LBRACKET) {
+	node = create_obj_node();
+	do {
+	  next(); // skip { or ,
+	  key = parse_string();
+	  if (tokens[cur_idx].type !== T_COLON) {
+	    error("T_COLON");
 	  }
+	  next(); // skip :
+	  value = parse_value();
+	  var attr = create_obj_attr(key, value);
+//console.log(tokens[cur_idx]);
+	  node.attrs.push(attr);
+	} while (tokens[cur_idx].type === T_COMMA)
+      } else {
+	error("T_LBRCKET");
+      }
+      if (tokens[cur_idx].type !== T_RBRACKET) {
+	error("T_RBRACKET");
+      }
+      return node;
+    },
+    parse_string = function() {
+      if (tokens[cur_idx].type !== T_STRING) {
+	error("T_STRING");
+      }
+      var result = create_literal_node(tokens[cur_idx].value);
+      next();
+      return result;
+    },
+    parse_value = function() {
+      switch(tokens[cur_idx].type) {
+        case T_STRING:
+	  return parse_string();
 	  break;
 	case T_TRUE:
+	  next();
 	  return create_literal_node(true);
 	  break;
 	case T_FALSE:
+	  next();
 	  return create_literal_node(false);
 	  break;
 	case T_NULL:
+	  next();
 	  return create_literal_node(null);
 	  break;
 	default:
 	  break;
       }
     };
+
     return function(token_list) {
       tokens = token_list;
-      return parse(0);
+      cur_idx = 0;
+      return parse_obj();
     };
   })(),
 
@@ -148,13 +200,17 @@ json_parse = (function() {
     generate = function(node){
       switch (node.type) {
 	case N_OBJ:
-	  result[generate(node.key)] = generate(node.value);
+	  for(var i=0, length=node.attrs.length; i<length; i+=1) {
+	    // todo: duplicate key.
+	    if (node.attrs[i].type === N_OBJ_ATTR) {
+	      result[generate(node.attrs[i].key)] = generate(node.attrs[i].value);
+	    }
+	  }
 	  return result;
 	case N_LITERAL:
 	  return node.value;
 	default:
 	  return undefined;
-	  break;
       }
     };
     return function(root) {
@@ -174,7 +230,8 @@ json_parse = (function() {
 
 }());
 
-console.log(json_parse('"key1":"value1"'));
-console.log(json_parse('"key1":true'));
-console.log(json_parse('"key1":false'));
-console.log(json_parse('"key1":null'));
+//console.log(json_parse('{"key1":"value1", "key2":"value2"}'));
+console.log(json_parse('{"key1":"value1"}'));
+console.log(json_parse('{"key1":true}'));
+console.log(json_parse('{"key1":false}'));
+console.log(json_parse('{"key1":null}'));
