@@ -19,6 +19,9 @@ json_parse = (function() {
       //      i = typeof i !== "undefined" ? i : 1;
       cur_idx+=i || 1;
     },
+    error = function(msg) {
+      throw new Error('Invalid token:'+msg);
+    },
     cur_char = function(){
       return source.charAt(cur_idx);
     },
@@ -55,7 +58,6 @@ json_parse = (function() {
       c = cur_char();
 
       while (cur_idx<source.length) {
-
 	switch (c) {
 	  case "{":
 	    tokens.push(make_token(T_LBRACKET));
@@ -94,6 +96,7 @@ json_parse = (function() {
 	    }
 	    break;
           default:
+	    error(cur_idx + "," + c + ","+source);
 	    break;
 	}
 	c = cur_char();
@@ -109,7 +112,7 @@ json_parse = (function() {
       cur_idx += i || 1;
     },
     error = function(msg) {
-//      throw "Invalid format. "+msg|"";
+      throw new Error('Invalid syntax:'+msg);
     },
     create_node = function(type) {
       return {
@@ -145,7 +148,6 @@ json_parse = (function() {
 	  next(); // skip :
 	  value = parse_value();
 	  var attr = create_obj_attr(key, value);
-//console.log(tokens[cur_idx]);
 	  node.attrs.push(attr);
 	} while (tokens[cur_idx].type === T_COMMA)
       } else {
@@ -230,8 +232,8 @@ json_parse = (function() {
 
 }());
 
-//console.log(json_parse('{"key1":"value1", "key2":"value2"}'));
-console.log(json_parse('{"key1":"value1"}'));
-console.log(json_parse('{"key1":true}'));
-console.log(json_parse('{"key1":false}'));
-console.log(json_parse('{"key1":null}'));
+console.log(json_parse('{"key1":"value1","key2":"value2"}'));
+//console.log(json_parse('{"key1":"value1"}'));
+//console.log(json_parse('{"key1":true}'));
+//console.log(json_parse('{"key1":false}'));
+//console.log(json_parse('{"key1":null}'));
