@@ -95,6 +95,9 @@ json_parse = (function() {
 	      next(4);
 	    }
 	    break;
+	  case "\n": case "\t": case " ": case "\r":
+	    next();
+	    break;
           default:
 	    error(cur_idx + "," + c + ","+source);
 	    break;
@@ -232,7 +235,7 @@ json_parse = (function() {
 
 }());
 
-console.log(json_parse('{"key1":"value1","key2":"value2"}'));
+console.log(json_parse('{"key1":"value1", "key2":"value2"}'));
 //console.log(json_parse('{"key1":"value1"}'));
 //console.log(json_parse('{"key1":true}'));
 //console.log(json_parse('{"key1":false}'));
