@@ -1,4 +1,4 @@
 MyJSON
 ======
 
-JASON parser implemented with Javascript
+Reinvention of JASON parser implemented with Javascript
