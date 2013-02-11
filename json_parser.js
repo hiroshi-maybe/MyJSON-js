@@ -29,13 +29,14 @@ json_parse = (function() {
     error = function(msg) {
       throw new Error('Invalid token:'+msg);
     },
-    cur_char = function(){
-      return source.charAt(cur_idx);
+    cur_char = function(i){
+      i = i || 0;
+      return source.charAt(cur_idx+i);
     },
     check_literal = function(literal){
       var result = true;
       for(var i=0, length=literal.length; i<length && result; i+=1) {
-	if (literal.charAt(i)!==source.charAt(cur_idx+i)) result=false;
+	if (literal.charAt(i)!==cur_char(i)) result=false;
       }
       return result;
     },
@@ -51,13 +52,13 @@ json_parse = (function() {
       return make_token(T_STRING, buf);
     },
     make_number = function(){
-      var buf="", is_frac=false;
+      var buf="", is_frac=false, is_float=false;
       if (cur_char() === "-") {
 	buf+="-";
 	next();
       }
       if (cur_char()==0 ) {
-	if (source.charAt(cur_idx+1) !== ".") error("0 heading number.");
+	if (cur_char(1) !== ".") error("0 heading number.");
 	// decimal fraction less than 1
 	buf += cur_char()+".";
 	is_frac = true;
@@ -66,12 +67,25 @@ json_parse = (function() {
       while((cur_char()>=0 && cur_char()<=9)) {
 	buf += cur_char();
 	next();
-	if (cur_char()==".") {
+	if (cur_char()===".") {
 	  if (is_frac) error("Doubled decimal point.");
+	  if (is_float) error("After float char 'E'.");
 	  // decimal fraction
 	  is_frac = true;
 	  buf += cur_char();
 	  next();
+	}
+	if (cur_char()==="e" || cur_char()==="E") {
+	  // float
+	  if ( cur_char(-1)<0 || cur_char(-1)>9 ) error("broken float.");
+	  if ( is_float ) error("Doubled float char 'E'.");
+	  is_float = true;
+	  buf += cur_char();
+	  next();
+	  if (cur_char()==="+" || cur_char()==="-") {
+	    buf += cur_char();
+	    next();
+	  }
 	}
       }
       return make_token(T_NUMBER, buf);
@@ -349,7 +363,10 @@ json_parse = (function() {
 //console.log(json_parse('{"key1":"value1", "key2": {"" : "", "key4": {}}}'));
 console.log(json_parse('{"key1":"value1", "key2" : {"key2-1":-101}, "key3": [true, {"key3-1":"value3-1"}, null]}'));
 console.log(json_parse('{"key1":-0.15}'));
-console.log(json_parse('{"key1":-10.105}'));
+console.log(json_parse('{"key1":10.105}'));
+console.log(json_parse('{"key1":-10.105e+010}'));
+console.log(json_parse('{"key1":12.005E0}'));
+console.log(json_parse('{"key1":-1.23E-1}'));
 //console.log(json_parse('{"key1":true}'));
 //console.log(json_parse('{"key1":false}'));
 //console.log(json_parse('{"key1":null}'));
