@@ -51,14 +51,28 @@ json_parse = (function() {
       return make_token(T_STRING, buf);
     },
     make_number = function(){
-      var buf="";
+      var buf="", is_frac=false;
       if (cur_char() === "-") {
 	buf+="-";
 	next();
       }
-      while(cur_char()>=0 && cur_char()<=9) {
-	buf+=cur_char();
+      if (cur_char()==0 ) {
+	if (source.charAt(cur_idx+1) !== ".") error("0 heading number.");
+	// decimal fraction less than 1
+	buf += cur_char()+".";
+	is_frac = true;
+	next(2);
+      }
+      while((cur_char()>=0 && cur_char()<=9)) {
+	buf += cur_char();
 	next();
+	if (cur_char()==".") {
+	  if (is_frac) error("Doubled decimal point.");
+	  // decimal fraction
+	  is_frac = true;
+	  buf += cur_char();
+	  next();
+	}
       }
       return make_token(T_NUMBER, buf);
     },
@@ -334,7 +348,8 @@ json_parse = (function() {
 
 //console.log(json_parse('{"key1":"value1", "key2": {"" : "", "key4": {}}}'));
 console.log(json_parse('{"key1":"value1", "key2" : {"key2-1":-101}, "key3": [true, {"key3-1":"value3-1"}, null]}'));
-//console.log(json_parse('{"key1":100}'));
+console.log(json_parse('{"key1":-0.15}'));
+console.log(json_parse('{"key1":-10.105}'));
 //console.log(json_parse('{"key1":true}'));
 //console.log(json_parse('{"key1":false}'));
 //console.log(json_parse('{"key1":null}'));
