@@ -43,12 +43,65 @@ json_parse = (function() {
 
     make_string = function(){
       next(); // skip first quote
-      var buf="";
+      var buf="", charCode=0, decimal=0;
       while(cur_char()!=="\"") {
-	buf+=cur_char();
-	next();
+
+	if (cur_idx > source.length-1) error("Broken format("+source+")");
+	if (cur_char()==="\b" || cur_char()==="\f" || cur_char()==="\n" || cur_char()==="\r" || cur_char()==="\t") error("Control character included.");
+
+	if (cur_char()==="\\") {
+	  // \ escaped value
+	  switch (cur_char(1)) {
+	    // Add unescaped character
+	    case "\"": case "/": case "\\":
+	      buf+=cur_char(1);
+	      next(2);
+	      break;
+	    // Add control character
+	    case "b":
+	      buf+="\b";
+	      next(2);
+	      break;
+	    case "f": 
+	      buf+="\f";
+	      next(2);
+	      break;
+	    case "n":
+	      buf+="\n";
+	      next(2);
+	      break;
+	    case "r":
+	      buf+="\r";
+	      next(2);
+	      break;
+	    case "t":
+	      buf+="\t";
+	      next(2);
+	      break;
+	    // unicode escape sequence
+	    case "u":
+	      charCode=0;
+	      next(2);    // skip '\u'
+	      for(var i=0; i<4; i+=1) {
+		// Get decimal from hex
+		decimal = parseInt(cur_char(), 16);
+		if (!isFinite(decimal)) error("Invalid hex("+cur_char()+")");
+		charCode = charCode * 16 + decimal;
+		next();
+	      }
+	      buf += String.fromCharCode(charCode);
+	      break;
+	    default:
+	      error("unexpected escape (\\"+cur_char()+")");
+	      break;
+	  }
+	} else {
+	  // Not \ escaped value
+	  buf+=cur_char();
+	  next();
+	}
       }
-      next();
+      next(); // skip close "
       return make_token(T_STRING, buf);
     },
     make_number = function(){
@@ -65,6 +118,7 @@ json_parse = (function() {
 	next(2);
       }
       while((cur_char()>=0 && cur_char()<=9)) {
+	// todo: prevent infinite loop.
 	buf += cur_char();
 	next();
 	if (cur_char()===".") {
@@ -367,6 +421,31 @@ console.log(json_parse('{"key1":10.105}'));
 console.log(json_parse('{"key1":-10.105e+010}'));
 console.log(json_parse('{"key1":12.005E0}'));
 console.log(json_parse('{"key1":-1.23E-1}'));
+console.log(json_parse('{"key1":"\\\"a"}'));
+console.log(json_parse('{"key2":"\\"a"}'));
+// key1: '"a'
+console.log(json_parse('{"key3":"\"}'));
+// key1: ''
+//console.log(json_parse('{"key4":"\\"}'));
+// error
+//console.log(json_parse('{"key5":"\\\"}'));
+// error
+console.log(json_parse('{"key6":"\\\\"}'));
+// key1: '\\'
+console.log(json_parse('{"key7":"/"}'));
+console.log(json_parse('{"key8":"\/"}'));
+console.log(json_parse('{"key9":"\\/"}'));
+console.log(json_parse('{"key10":"\\\/"}'));
+// { key7: '/' }
+console.log(json_parse('{"key11":"\\\\/"}'));
+// key7: '\\/'
+console.log(json_parse('{"key12":"\\b\\f\\n\\r\\t"}'));
+// key7: '\b\f\n\r\t'
+console.log(json_parse('{"key13":"\u007a\\n\u26c4\u3042"}'));
+// error
+
+//console.log(json_parse('{"key1":"\\\\"}'));
+// 
 //console.log(json_parse('{"key1":true}'));
 //console.log(json_parse('{"key1":false}'));
 //console.log(json_parse('{"key1":null}'));
