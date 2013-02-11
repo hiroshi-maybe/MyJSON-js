@@ -3,16 +3,16 @@ json_parse = (function() {
 
   // Token
   var T_STRING = "T0:STR" ,   // string
-  T_COLON = "T1::",       // :
-  T_COMMA = "T2:,",       // ,
-  T_TRUE = "T3:TRUE",        // true
-  T_FALSE = "T4:FALSE",       // false
-  T_NULL = "T5:NULL",        // null
-  T_LBRACKET = "T6:{",    // {
-  T_RBRACKET = "T7:}",    // }
-  T_LSQRBRACKET = "T8:[", // [
-  T_RSQRBRACKET = "T9:]", // ]
-  T_NUMBER = "T10:NUM",   // number
+  T_COLON = "T1",       // :
+  T_COMMA = "T2",       // ,
+  T_TRUE = "T3",        // true
+  T_FALSE = "T4",       // false
+  T_NULL = "T5",        // null
+  T_LBRACKET = "T6",    // {
+  T_RBRACKET = "T7",    // }
+  T_LSQRBRACKET = "T8", // [
+  T_RSQRBRACKET = "T9", // ]
+  T_NUMBER = "T10",   // number
   // Node
   N_OBJ = "N0",        // object
   N_OBJ_ATTR = "N1",   // {key, value} pair in  object
@@ -441,7 +441,7 @@ console.log(json_parse('{"key11":"\\\\/"}'));
 // key7: '\\/'
 console.log(json_parse('{"key12":"\\b\\f\\n\\r\\t"}'));
 // key7: '\b\f\n\r\t'
-console.log(json_parse('{"key13":"\u007a\\n\u26c4\u3042"}'));
+console.log(json_parse('{"key13":"\\u007a\\n\u26c4\u3042"}'));
 // error
 
 //console.log(json_parse('{"key1":"\\\\"}'));
