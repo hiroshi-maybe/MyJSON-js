@@ -146,6 +146,13 @@ json_parse = (function() {
       var key, value, node;
       if (tokens[cur_idx].type === T_LBRACKET) {
 	node = create_obj_node();
+
+	// Handling empty object
+	if (tokens[cur_idx+1].type === T_RBRACKET) {
+	  next(2);
+	  return node;
+	}
+
 	do {
 	  next(); // skip { or ,
 	  key = parse_string();
@@ -248,7 +255,7 @@ json_parse = (function() {
 
 }());
 
-console.log(json_parse('{"key1":"value1", "key2": {"key3" : "value3"}}'));
+console.log(json_parse('{"key1":"value1", "key2": {"key3" : true, "key4": {}}}'));
 //console.log(json_parse('{"key1":"value1"}'));
 //console.log(json_parse('{"key1":true}'));
 //console.log(json_parse('{"key1":false}'));
