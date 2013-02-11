@@ -1,7 +1,8 @@
+
 json_parse = (function() {
 
   // Token
-  var T_STRING = "T0:STR" ,   // String
+  var T_STRING = "T0:STR" ,   // string
   T_COLON = "T1::",       // :
   T_COMMA = "T2:,",       // ,
   T_TRUE = "T3:TRUE",        // true
@@ -11,6 +12,7 @@ json_parse = (function() {
   T_RBRACKET = "T7:}",    // }
   T_LSQRBRACKET = "T8:[", // [
   T_RSQRBRACKET = "T9:]", // ]
+  T_NUMBER = "T10:NUM",   // number
   // Node
   N_OBJ = "N0",        // object
   N_OBJ_ATTR = "N1",   // {key, value} pair in  object
@@ -40,14 +42,25 @@ json_parse = (function() {
 
     make_string = function(){
       next(); // skip first quote
-      var char = source.charAt(cur_idx), buf="";
-      while(char!=="\"") {
-	buf+=char;
+      var buf="";
+      while(cur_char()!=="\"") {
+	buf+=cur_char();
 	next();
-	char = cur_char();
       }
       next();
       return make_token(T_STRING, buf);
+    },
+    make_number = function(){
+      var buf="";
+      if (cur_char() === "-") {
+	buf+="-";
+	next();
+      }
+      while(cur_char()>=0 && cur_char()<=9) {
+	buf+=cur_char();
+	next();
+      }
+      return make_token(T_NUMBER, buf);
     },
 
     make_token = function(type, value) {
@@ -111,8 +124,15 @@ json_parse = (function() {
 	  case "\n": case "\t": case " ": case "\r":
 	    next();
 	    break;
+          case "-":
+	    tokens.push(make_number());
+	    break;
           default:
-	    error(cur_idx + "," + c + ","+source);
+	    if (c >=0 && c <= 9) {
+	      tokens.push(make_number());
+	    } else {
+	      error(cur_idx + "," + c + ","+source);	      
+	    }
 	    break;
 	}
 	c = cur_char();
@@ -222,10 +242,21 @@ json_parse = (function() {
       next();
       return result;
     },
+    parse_number = function() {
+      if (tokens[cur_idx].type !== T_NUMBER) {
+	error("T_NUMBER");
+      }
+      var result = create_literal_node(tokens[cur_idx].value);
+      next();
+      return result;
+    },
     parse_value = function() {
       switch(tokens[cur_idx].type) {
         case T_STRING:
 	  return parse_string();
+	  break;
+	case T_NUMBER:
+	  return parse_number();
 	  break;
         case T_LBRACKET:
 	  return parse_obj();
@@ -302,8 +333,8 @@ json_parse = (function() {
 }());
 
 //console.log(json_parse('{"key1":"value1", "key2": {"" : "", "key4": {}}}'));
-console.log(json_parse('{"key1":"value1", "key2" : {"key2-1":"value2-1"}, "key3": [true, {"key3-1":"value3-1"}, null]}'));
-//console.log(json_parse('{"key1":"value1"}'));
+console.log(json_parse('{"key1":"value1", "key2" : {"key2-1":-101}, "key3": [true, {"key3-1":"value3-1"}, null]}'));
+//console.log(json_parse('{"key1":100}'));
 //console.log(json_parse('{"key1":true}'));
 //console.log(json_parse('{"key1":false}'));
 //console.log(json_parse('{"key1":null}'));
