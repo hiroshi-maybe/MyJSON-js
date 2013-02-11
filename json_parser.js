@@ -1,5 +1,6 @@
 json_parse = (function() {
 
+  // Token
   var T_STRING = "T0" ,   // String
   T_COLON = "T1",     // :
   T_COMMA = "T2",     // ,
@@ -8,6 +9,7 @@ json_parse = (function() {
   T_NULL = "T5",      // null
   T_LBRACKET = "T6",    // {
   T_RBRACKET = "T7",    // }
+  // Node
   N_OBJ = "N0",       // object
   N_OBJ_ATTR = "N1",    // Boolean, .. in syntax tree
   N_LITERAL = "N2",    // Boolean, .. in syntax tree
@@ -117,6 +119,7 @@ json_parse = (function() {
     error = function(msg) {
       throw new Error('Invalid syntax:'+msg);
     },
+
     create_node = function(type) {
       return {
 	type : type	
@@ -138,6 +141,7 @@ json_parse = (function() {
       node.value = value;
       return node;
     },
+
     parse_obj = function(){
       var key, value, node;
       if (tokens[cur_idx].type === T_LBRACKET) {
@@ -174,6 +178,9 @@ json_parse = (function() {
         case T_STRING:
 	  return parse_string();
 	  break;
+        case T_LBRACKET:
+	  return parse_obj();
+	  break;
 	case T_TRUE:
 	  next();
 	  return create_literal_node(true);
@@ -183,6 +190,10 @@ json_parse = (function() {
 	  return create_literal_node(false);
 	  break;
 	case T_NULL:
+	  next();
+	  return create_literal_node(null);
+	  break;
+	case T_LBRACKET:
 	  next();
 	  return create_literal_node(null);
 	  break;
@@ -200,18 +211,19 @@ json_parse = (function() {
 
   create_object_from_tree = (function() {
 
-    var result = {}, 
+    var
 
     generate = function(node){
       switch (node.type) {
 	case N_OBJ:
+	  var obj = {};
 	  for(var i=0, length=node.attrs.length; i<length; i+=1) {
 	    // todo: duplicate key.
 	    if (node.attrs[i].type === N_OBJ_ATTR) {
-	      result[generate(node.attrs[i].key)] = generate(node.attrs[i].value);
+	      obj[generate(node.attrs[i].key)] = generate(node.attrs[i].value);
 	    }
 	  }
-	  return result;
+	  return obj;
 	case N_LITERAL:
 	  return node.value;
 	default:
@@ -219,6 +231,7 @@ json_parse = (function() {
       }
     };
     return function(root) {
+      tree = root;
       return generate(root);
     };
   })();
@@ -227,15 +240,15 @@ json_parse = (function() {
 
     var result={}, tokens=[], root={};
     tokens = tokenize(str);
+//console.log(tokens);
     root = create_syntax_tree(tokens);
-//    result[key] = value;
-//    return result;
+//console.log(root);
     return create_object_from_tree(root);
   };
 
 }());
 
-console.log(json_parse('{"key1":"value1", "key2":"value2"}'));
+console.log(json_parse('{"key1":"value1", "key2": {"key3" : "value3"}}'));
 //console.log(json_parse('{"key1":"value1"}'));
 //console.log(json_parse('{"key1":true}'));
 //console.log(json_parse('{"key1":false}'));
