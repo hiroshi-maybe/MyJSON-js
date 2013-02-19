@@ -23,7 +23,6 @@ json_parse = (function() {
     var tokens = [], source, cur_idx, buf = [],
 
     next = function (i){
-      //      i = typeof i !== "undefined" ? i : 1;
       cur_idx+=i || 1;
     },
     error = function(msg) {
@@ -47,7 +46,11 @@ json_parse = (function() {
       while(cur_char()!=="\"") {
 
 	if (cur_idx > source.length-1) error("Broken format("+source+")");
-	if (cur_char()==="\b" || cur_char()==="\f" || cur_char()==="\n" || cur_char()==="\r" || cur_char()==="\t") error("Control character included.");
+	if (cur_char()==="\b"
+	    || cur_char()==="\f"
+	    || cur_char()==="\n"
+	    || cur_char()==="\r"
+	    || cur_char()==="\t") error("Control character included.");
 
 	if (cur_char()==="\\") {
 	  // \ escaped value
@@ -407,45 +410,8 @@ json_parse = (function() {
 
     var result={}, tokens=[], root={};
     tokens = tokenize(str);
-//pretty_print(console.log(tokens));
     root = create_syntax_tree(tokens);
     return create_object_from_tree(root);
   };
 
 }());
-
-//console.log(json_parse('{"key1":"value1", "key2": {"" : "", "key4": {}}}'));
-console.log(json_parse('{"key1":"value1", "key2" : {"key2-1":-101}, "key3": [true, {"key3-1":"value3-1"}, null]}'));
-console.log(json_parse('{"key1":-0.15}'));
-console.log(json_parse('{"key1":10.105}'));
-console.log(json_parse('{"key1":-10.105e+010}'));
-console.log(json_parse('{"key1":12.005E0}'));
-console.log(json_parse('{"key1":-1.23E-1}'));
-console.log(json_parse('{"key1":"\\\"a"}'));
-console.log(json_parse('{"key2":"\\"a"}'));
-// key1: '"a'
-console.log(json_parse('{"key3":"\"}'));
-// key1: ''
-//console.log(json_parse('{"key4":"\\"}'));
-// error
-//console.log(json_parse('{"key5":"\\\"}'));
-// error
-console.log(json_parse('{"key6":"\\\\"}'));
-// key1: '\\'
-console.log(json_parse('{"key7":"/"}'));
-console.log(json_parse('{"key8":"\/"}'));
-console.log(json_parse('{"key9":"\\/"}'));
-console.log(json_parse('{"key10":"\\\/"}'));
-// { key7: '/' }
-console.log(json_parse('{"key11":"\\\\/"}'));
-// key7: '\\/'
-console.log(json_parse('{"key12":"\\b\\f\\n\\r\\t"}'));
-// key7: '\b\f\n\r\t'
-console.log(json_parse('{"key13":"\\u007a\\n\u26c4\u3042"}'));
-// error
-
-//console.log(json_parse('{"key1":"\\\\"}'));
-// 
-//console.log(json_parse('{"key1":true}'));
-//console.log(json_parse('{"key1":false}'));
-//console.log(json_parse('{"key1":null}'));
